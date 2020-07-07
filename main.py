@@ -40,7 +40,7 @@ class Point:
 
 class Perceptron:
     def __init__(self):
-        self.lr = 0.1
+        self.lr = 0.01
         self.weights = []
         for i in range(3):
             self.weights.append(random.uniform(-1,1))
@@ -61,15 +61,18 @@ class Perceptron:
             self.weights[i] += error * input[i] * self.lr
 
     def guessY(self,x):
-        m = self.weights[0] / self.weights[1]
-        b = self.weights[2]
-        return int(m * x + b)
+        w0 = self.weights[0]
+        w1 = self.weights[1]
+        w2 = self.weights[2]
+
+        return (-(w2/w1) - (w0/w1) * x)
 
 brain = Perceptron()
 points = []
 width = 800
 height = 800
-point_count = 100
+point_count = 300
+doTrain = False
 plt = np.zeros((width,height,3),np.uint8)
 
 plt[:,:] = (255,255,255)
@@ -77,57 +80,51 @@ plt[:,:] = (255,255,255)
 p1 = Point(True,-1,f(-1))
 p2 = Point(True,1,f(1))
 
-plt = cv.line(plt,(p1.px,p1.py),(p2.px,p2.py),(0,0,0),1)
-
-# p3 = Point(True,-1,brain.guessY(-1))
-# p4 = Point(True,1,brain.guessY(1))
-#
-# plt = cv.line(plt,(p3.px,p3.py),(p4.px,p4.py),(0,0,0),1)
-
-
-
 for i in range(point_count):
-    #setting points and ploting it
+    #setting points
     points.append(Point())
-    if points[i].label == 1:
-        color = (100,100,100)
-        thickness = 2
-    else:
-        color = (0,0,0)
-        thickness = -1
-    plt = cv.circle(plt,(points[i].px,points[i].py),10,color,thickness)
 
-    # peceptron guessing the position
-    guess = brain.guess(points[i])
-    if guess == points[i].label:
-        color = (0,255,0)
-    else:
-        color = (0,0,255)
-    plt = cv.circle(plt,(points[i].px,points[i].py),5,color,thickness=-1)
-
-cv.imshow("graph",plt)
-
-autoTrain = True
-print('press a key to start training')
-cv.waitKey(0)
 
 while not (keyboard.is_pressed('q')):
+    #ploting points and guess
+    plt = cv.line(plt,(p1.px,p1.py),(p2.px,p2.py),(0,0,0),1)
+    for i in range(point_count):
+        if points[i].label == 1:
+            color = (100,100,100)
+            thickness = 2
+        else:
+            color = (0,0,0)
+            thickness = -1
+        plt = cv.circle(plt,(points[i].px,points[i].py),10,color,thickness)
+
+        #training
+        if doTrain:
+            brain.train(points[i],points[i].label)
+            print(brain.weights)
+
+        # peceptron guessing the position
+        guess = brain.guess(points[i])
+        if guess == points[i].label:
+            color = (0,255,0)
+        else:
+            color = (0,0,255)
+        plt = cv.circle(plt,(points[i].px,points[i].py),5,color,thickness=-1)
+
     p3 = Point(True,-1,brain.guessY(-1))
     p4 = Point(True,1,brain.guessY(1))
-
     plt = cv.line(plt,(p3.px,p3.py),(p4.px,p4.py),(0,0,0),1)
-    if keyboard.is_pressed('t') or autoTrain:
-        for point in points:
-            brain.train(point,point.label)
-            guess = brain.guess(point)
 
-            if guess == point.label:
-                color = (0,255,0)
-            else:
-                color = (0,0,255)
-            plt = cv.circle(plt,(point.px,point.py),5,color,thickness=-1)
+    #showing graph image
+    cv.imshow("graph",plt)
 
-            cv.imshow("graph",plt)
-            cv.waitKey(1)
+    if keyboard.is_pressed('t'):
+        doTrain = True
+
+    if keyboard.is_pressed('s'):
+        doTrain = False
+
+    plt[:,:] = (255,255,255)
+    cv.waitKey(60)
+
 
 cv.destroyAllWindows()
